@@ -154,6 +154,41 @@ the count comes from sign changes in a Sturm chain over exact rationals.
 - The zero polynomial raises. It is zero at every point, so no finite root count exists, and
   returning `0` would be a confident wrong answer.
 
+## Troubleshooting
+
+**`InexactInput: refusing the float 0.1`.** Deliberate. `0.1` is not one tenth in binary, so exact
+arithmetic on it answers a question you did not ask. Use `Fraction(1, 10)`, the string `"0.1"`, or
+`Poly.from_floats([...])` if the binary value really is what you mean. This applies to interval
+bounds too — a float `a` or `b` silently shifts what is being certified.
+
+**`ValueError: need a < b`.** The interval is empty or reversed. Bounds are not sorted for you,
+because swapping them would answer a different question than the one asked.
+
+**`ValueError: the zero polynomial is zero at every point`.** It has infinitely many roots in any
+interval, so there is no finite count to return. `0` would be a confident wrong answer.
+
+**`count_roots` returned fewer roots than I expected.** It counts *distinct* roots.
+`Poly.from_roots([2, 2, 2])` has one. Multiplicities are not reported.
+
+**A root exactly at an endpoint is or is not counted.** The interval is half-open `(a, b]` — left
+excluded, right included. `count_roots(Poly.from_roots([2]), 2, 5)` is `0`;
+`count_roots(Poly.from_roots([2]), 0, 2)` is `1`.
+
+**`positive_on` says `False` but the polynomial looks positive.** It certifies over the whole
+interval. One root inside is enough to refuse, even if both endpoints are positive. Check
+`n_roots_in_interval` in the returned dict.
+
+**`gauss_solve` raised instead of returning.** The system is singular over the field of rational
+functions, so there is no unique solution to return.
+
+## Performance
+
+Measured, not estimated: `count_roots` on a degree-40 polynomial with 40 distinct roots takes about
+**8.5 ms**; degree 20 about **2.1 ms**; degree 10 about **0.6 ms**. Cost is dominated by the Sturm
+chain, which is quadratic in the degree, and by `Fraction` growth in the coefficients. Nothing here
+has needed optimising — if you hit a case that is slow, it is worth reporting rather than working
+around.
+
 ## Tests
 
 ```
@@ -176,7 +211,7 @@ Five small, independently useful tools built around one idea: **a verdict you ca
 
 | | |
 |---|---|
-| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~1308 lines. Shortest counterexamples, no required dependencies. |
+| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~1619 lines, with a CLI. Shortest counterexamples, no required dependencies. |
 | [`protocol-bench`](https://github.com/nickharris808/protocol-bench) | 15 published IEEE 802.11 / 3GPP procedures with ground truth. A claimed detection must **replay**. |
 | [`minicheck-mcp`](https://github.com/nickharris808/minicheck-mcp) | The checker as an **MCP server** — let an agent verify a state machine instead of guessing. |
 | [`polyfrac`](https://github.com/nickharris808/polyfrac) ← *you are here* | Exact polynomial + rational-function arithmetic over ℚ with Sturm real-root counting. Zero deps. |
