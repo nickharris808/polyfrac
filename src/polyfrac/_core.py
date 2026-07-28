@@ -16,14 +16,66 @@ Functions:
   count_roots  -- exact count of DISTINCT real roots in a half-open interval (a, b].
   positive_on  -- certify a polynomial has no root in (a, b] and report its sign there.
 
-No floating point is used anywhere.
+No floating point is used anywhere in the ARITHMETIC, and none is accepted at the door either.
+
+That second half used to be untrue. `Poly([0.1, 0.2])` was accepted and stored as
+``Fraction(3602879701896397, 36028797018963968)`` — the exact value of the *binary approximation* of
+0.1, not of 0.1. Every operation after that is exact, and every result is exactly wrong by however
+much the input was already off. Exactness you can only rely on when the caller happens to have
+supplied exact input is not a guarantee, so a float now raises `InexactInput`.
+
+Use `Fraction(1, 10)`, the string `"0.1"`, or `Poly.from_floats([...])` if a float really is what
+you have and you accept the conversion.
 """
 
 from __future__ import annotations
 
 from fractions import Fraction
 
-__all__ = ["Poly", "PolyFrac", "gauss_solve", "sturm_chain", "count_roots", "positive_on"]
+__all__ = [
+    "Poly",
+    "PolyFrac",
+    "InexactInput",
+    "gauss_solve",
+    "sturm_chain",
+    "count_roots",
+    "positive_on",
+    "exact",
+]
+
+
+class InexactInput(TypeError):
+    """A float (or other inexact value) was supplied where an exact rational was required.
+
+    Raised rather than converted, because the conversion is silent and lossy: a binary float is
+    almost never the decimal you wrote, so converting it produces an exact answer to a question
+    slightly different from the one you asked.
+    """
+
+
+def exact(x) -> Fraction:
+    """Coerce to `Fraction`, refusing anything that is already approximate.
+
+    Accepts int, Fraction, Decimal, and str (``"0.1"`` and ``"1/10"`` both parse exactly).
+    Rejects float and complex.
+    """
+    if isinstance(x, float):
+        if x != x or x in (float("inf"), float("-inf")):
+            # Non-finite: there is no rational to convert to at all, and building the usual
+            # message below would itself raise (Fraction(inf) overflows).
+            raise InexactInput(f"refusing {x!r}: it is not a finite value and has no rational representation")
+        raise InexactInput(
+            f"refusing the float {x!r}: it is a binary approximation, so converting it would give "
+            f"an exact answer to the wrong question (it equals {Fraction(x)}). "
+            f'Use Fraction({x!r}) if you really mean that value, or the string "{x}" / '
+            f"Fraction(numerator, denominator) for the decimal you intended, or Poly.from_floats()."
+        )
+    if isinstance(x, complex):
+        raise InexactInput(f"refusing the complex value {x!r}: this package is real-valued")
+    try:
+        return Fraction(x)
+    except (TypeError, ValueError) as e:
+        raise InexactInput(f"cannot interpret {x!r} as an exact rational: {e}") from e
 
 
 class Poly:
@@ -32,14 +84,25 @@ class Poly:
     __slots__ = ("c",)
 
     def __init__(self, coeffs):
-        c = [Fraction(x) for x in coeffs]
+        c = [exact(x) for x in coeffs]
         while len(c) > 1 and c[-1] == 0:
             c.pop()
         self.c = c
 
     @staticmethod
     def const(x) -> Poly:
-        return Poly([Fraction(x)])
+        return Poly([exact(x)])
+
+    @staticmethod
+    def from_floats(coeffs) -> Poly:
+        """Build from floats, converting each to its EXACT binary value.
+
+        The explicit opt-in for `Poly([...])`'s refusal. Every guarantee downstream still holds —
+        the arithmetic is exact — but it is exact about the binary approximations you passed in, not
+        about the decimals you probably meant. ``0.1`` becomes ``3602879701896397/36028797018963968``.
+        Prefer strings or `Fraction` when the decimal is what matters.
+        """
+        return Poly([Fraction(float(x)) for x in coeffs])
 
     @staticmethod
     def from_roots(roots) -> Poly:
@@ -50,7 +113,7 @@ class Poly:
         """
         out = Poly([Fraction(1)])
         for r in roots:
-            out = out * Poly([-Fraction(r), Fraction(1)])
+            out = out * Poly([-exact(r), Fraction(1)])
         return out
 
     @staticmethod
@@ -83,7 +146,7 @@ class Poly:
         return Poly([-a for a in self.c])
 
     def scale(self, k) -> Poly:
-        k = Fraction(k)
+        k = exact(k)
         return Poly([a * k for a in self.c])
 
     def divmod(self, o: Poly) -> tuple[Poly, Poly]:
@@ -111,7 +174,7 @@ class Poly:
         return Poly([self.c[i] * i for i in range(1, len(self.c))])
 
     def eval(self, x) -> Fraction:
-        x = Fraction(x)
+        x = exact(x)
         acc = Fraction(0)
         for a in reversed(self.c):
             acc = acc * x + a
@@ -234,18 +297,36 @@ def _sign_changes(chain: list[Poly], x) -> int:
 
 
 def count_roots(P: Poly, a, b) -> int:
-    """Number of DISTINCT real roots of P in (a, b] (Sturm's theorem; a < b, exact rationals)."""
-    a, b = Fraction(a), Fraction(b)
+    """Number of DISTINCT real roots of P in (a, b] (Sturm's theorem; a < b, exact rationals).
+
+    Raises `ValueError` for the zero polynomial. Sturm's theorem does not apply to it, and the
+    sign-change arithmetic happens to yield 0 — a confident "no roots here" about a function that
+    is zero at every point of the interval. Refusing is the only correct answer available, since
+    the true count is not finite.
+    """
+    a, b = exact(a), exact(b)
     if not a < b:
-        raise ValueError("need a < b")
+        raise ValueError(f"need a < b, got a={a} b={b}")
+    if P.is_zero():
+        raise ValueError(
+            "the zero polynomial is zero at every point, so it has infinitely many roots in any "
+            "interval; Sturm's theorem does not apply and no finite count exists"
+        )
     chain = sturm_chain(P)
     return _sign_changes(chain, a) - _sign_changes(chain, b)
 
 
 def positive_on(P: Poly, a, b) -> dict:
     """EXACT certificate that P(x) > 0 for all x in [a, b]: P(a) > 0, P(b) > 0, and ZERO roots in
-    (a, b] by Sturm — a sign change inside would require a root. Returns the full evidence."""
-    a, b = Fraction(a), Fraction(b)
+    (a, b] by Sturm — a sign change inside would require a root. Returns the full evidence.
+
+    Raises for the zero polynomial rather than reporting ``positive_on_interval: False`` with a
+    root count of 0. That verdict was safe in direction but its evidence was wrong, and this
+    function's value is the evidence.
+    """
+    a, b = exact(a), exact(b)
+    if P.is_zero():
+        raise ValueError("the zero polynomial is never positive and has no finite root count")
     pa, pb = P.eval(a), P.eval(b)
     n_roots = count_roots(P, a, b)
     return {

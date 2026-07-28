@@ -2,7 +2,7 @@
 
 [![install](https://img.shields.io/badge/install-from%20GitHub-blue)](https://github.com/nickharris808/polyfrac#install)
 [![CI](https://img.shields.io/badge/ci-passing-brightgreen)](https://github.com/nickharris808/polyfrac/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-18%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-66%20passing-brightgreen)](tests/)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![deps](https://img.shields.io/badge/dependencies-none-brightgreen)
@@ -27,7 +27,7 @@ a crossing may sit between two samples. `polyfrac` counts the real roots in an i
 as an integer, using Sturm's theorem over rational arithmetic. If the count is zero and the sign at one
 endpoint is known, the sign is settled for the whole interval.
 
-Zero dependencies. Pure standard library (`fractions`). ~250 lines you can read in one sitting.
+Zero dependencies. Pure standard library (`fractions`). ~390 lines you can read in one sitting.
 
 ## Install
 
@@ -120,11 +120,37 @@ SymPy will do all of this and much more. `polyfrac` exists for the case where yo
 and nothing else, with no dependency, no import cost, and a source file short enough to audit before
 you trust it in a certification path.
 
-## Scope
+## Honest scope
 
-Univariate, over ℚ. `count_roots` counts distinct real roots; multiplicities are not reported.
-`gauss_solve` assumes the system is non-singular over the field of rational functions. For multivariate
-sign conditions you want cylindrical algebraic decomposition, which this package does not implement.
+**Exactness is enforced at the boundary, not merely intended.** Passing a `float` raises
+`InexactInput` rather than being converted, because `0.1` is not one tenth — it is
+`3602879701896397/36028797018963968`, and exact arithmetic on it produces an exact answer to a
+question you did not ask. Use `Fraction(1, 10)`, the string `"0.1"`, or the explicit
+`Poly.from_floats()` when a float really is the value you mean.
+
+```python
+>>> Poly([0.1])
+InexactInput: refusing the float 0.1: it is a binary approximation ...
+>>> Poly(["0.1"]).c[0]
+Fraction(1, 10)
+```
+
+**What it proves.** An exact count of *distinct* real roots in the half-open interval `(a, b]`, and
+an exact sign certificate over an interval. No sampling, no tolerance, no numerical root finding —
+the count comes from sign changes in a Sturm chain over exact rationals.
+
+**What it does not prove.**
+
+- Univariate only, over ℚ. For multivariate sign conditions you want cylindrical algebraic
+  decomposition, which this package does not implement.
+- Multiplicities are not reported. `Poly.from_roots([2, 2, 2])` has *one* distinct root.
+- Irrational and complex roots are outside the interval arithmetic entirely; only real roots at
+  rational-bounded intervals are counted.
+- The interval convention is half-open `(a, b]` — the left endpoint is excluded and the right is
+  included. Off-by-one here is silent, so it is asserted in the test suite.
+- `gauss_solve` requires a non-singular system; a singular one raises rather than returning a value.
+- The zero polynomial raises. It is zero at every point, so no finite root count exists, and
+  returning `0` would be a confident wrong answer.
 
 ## Tests
 
@@ -132,7 +158,7 @@ sign conditions you want cylindrical algebraic decomposition, which this package
 pip install -e ".[test]" && pytest
 ```
 
-18 tests, including the worked example above and explicit checks that the arithmetic is exact
+66 tests, including the worked example above and explicit checks that the arithmetic is exact
 (`(1/3) * 3 == 1`, not `0.9999999999999999`).
 
 ## Where this came from
@@ -148,7 +174,7 @@ Five small, independently useful tools built around one idea: **a verdict you ca
 
 | | |
 |---|---|
-| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~560 lines. Shortest counterexamples, no required dependencies. |
+| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~1308 lines. Shortest counterexamples, no required dependencies. |
 | [`protocol-bench`](https://github.com/nickharris808/protocol-bench) | 15 published IEEE 802.11 / 3GPP procedures with ground truth. A claimed detection must **replay**. |
 | [`minicheck-mcp`](https://github.com/nickharris808/minicheck-mcp) | The checker as an **MCP server** — let an agent verify a state machine instead of guessing. |
 | [`polyfrac`](https://github.com/nickharris808/polyfrac) ← *you are here* | Exact polynomial + rational-function arithmetic over ℚ with Sturm real-root counting. Zero deps. |

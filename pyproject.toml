@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "polyfrac"
-version = "0.1.0"
+version = "0.2.0"
 description = "Exact polynomial and rational-function arithmetic over Q, with Sturm-sequence real-root counting. No floating point."
 readme = "README.md"
 requires-python = ">=3.9"

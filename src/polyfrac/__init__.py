@@ -5,6 +5,12 @@ Everything is exact. There is no floating point anywhere in this package: coeffi
 ``fractions.Fraction``, and root *counts* are integers obtained by counting sign changes in a
 Sturm chain rather than by numerical root finding.
 
+That guarantee is enforced at the boundary, not merely intended. Passing a ``float`` raises
+`InexactInput` instead of being converted, because ``0.1`` is not one tenth — it is
+``3602879701896397/36028797018963968``, and exact arithmetic on it yields an exact answer to a
+question you did not ask. Use `Fraction(1, 10)`, the string ``"0.1"``, or the explicit
+`Poly.from_floats` when a float is genuinely the value you mean.
+
 Quick start
 -----------
 >>> from polyfrac import Poly, count_roots, positive_on
@@ -19,7 +25,16 @@ True
 
 from fractions import Fraction
 
-from ._core import Poly, PolyFrac, count_roots, gauss_solve, positive_on, sturm_chain
+from ._core import (
+    InexactInput,
+    Poly,
+    PolyFrac,
+    count_roots,
+    exact,
+    gauss_solve,
+    positive_on,
+    sturm_chain,
+)
 
 __all__ = [
     "Poly",
@@ -28,7 +43,9 @@ __all__ = [
     "sturm_chain",
     "count_roots",
     "positive_on",
+    "InexactInput",
+    "exact",
     "Fraction",
     "__version__",
 ]
-__version__ = "0.1.0"
+__version__ = "0.2.0"
