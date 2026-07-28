@@ -1,35 +1,72 @@
 # Contributing to polyfrac
 
-Small, focused, and dependency-free is the point of this package. That shapes what changes are easy to
-accept.
+Contributions are welcome. Most of this is one rule.
 
-## Ground rules
+## The rule
 
-1. **No dependencies.** Standard library only. A pull request that adds a runtime dependency will be
-   declined regardless of merit — depend on `polyfrac` from your own package instead.
-2. **No floating point.** Every coefficient, endpoint, and returned value is exact. If you need a
-   `float` anywhere in the computation path, this is the wrong package for that change.
-3. **Univariate scope.** Multivariate sign conditions need cylindrical algebraic decomposition, which
-   is deliberately out of scope.
+**No change may let this tool give a confident answer it has not earned.**
 
-## Getting set up
+Everything else is negotiable. That is not. A change is unlikely to be accepted if it lets a verdict
+be reported from an analysis that did not establish it, maps an undetermined result onto something a
+downstream system renders as success, or silently coerces input rather than refusing it.
 
-```
-python -m venv .venv && . .venv/bin/activate
+Unsure whether a change crosses that line? Open an issue first — much easier before the code exists.
+
+## Reporting a false verdict
+
+The most valuable bug report you can send, and it takes priority. **Include the input.**
+
+If this tool told you something was proved and it was not, that is a security-grade defect. Earlier
+ones in this portfolio got public advisories; the response is disclosure plus a regression test, not
+a quiet patch.
+
+## Setup
+
+```console
+git clone https://github.com/nickharris808/polyfrac.git
+cd polyfrac
+python -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
-pytest
+pytest -q
 ```
 
-## Pull requests
+`numpy` is a test-only dependency used for the differential against an independent root finder. It
+is in the `test` extra; without it that check silently skips.
 
-- Add a test that fails before your change and passes after. Tests live in `tests/`.
-- Keep the public API in `__all__` explicit; anything not listed there is internal.
-- If you change interval semantics, say so loudly — `(a, b]` is left-exclusive and right-inclusive, and
-  code depends on that.
-- Sign-off by [DCO](https://developercertificate.org/) (`git commit -s`). There is no CLA.
+## What a good test looks like
 
-## Reporting a wrong answer
+Three kinds, in increasing order of worth:
 
-An incorrect root count is the most serious possible bug here. If you find one, please include the
-polynomial coefficients as exact fractions and the interval endpoints, so it can go straight into the
-test suite.
+1. **Unit tests** — they ask whether the code agrees with itself. Necessary, least informative.
+2. **Adversarial tests** — malformed, empty, enormous, out-of-distribution input, with one oracle:
+   *no input may produce a confident-looking answer that is wrong.*
+3. **Differential tests** — the best. Check against an independent implementation of the same
+   question.
+
+**Mutation-test your regression test.** Reintroduce the bug and confirm the test goes red. A test
+that passes on both the broken and the fixed code is worth nothing.
+
+## Numbers in documentation
+
+`tests/test_readme_claims.py` re-derives every numeric claim in the README. If you change the test
+count or add source, it fails until the README matches. That is working as intended — never write a
+number the published code cannot reproduce.
+
+## Style
+
+- `ruff check .` and `ruff format --check .` must pass; line length 120.
+- Comments explain **why**. The code says what.
+- Error messages name the fix, not just the fault.
+
+## Responsible disclosure
+
+Do not add findings or verdicts about **named** third-party products, vendors or protocols. Ship the
+checker and the methodology.
+
+## Licence
+
+MIT. By contributing you agree your contribution is licensed the same way.
+
+---
+
+Portfolio-wide guidance: <https://nickharris808.github.io/verification-docs/guides/contributing/>
