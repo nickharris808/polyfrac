@@ -2,7 +2,7 @@
 
 [![install](https://img.shields.io/badge/install-from%20GitHub-blue)](https://github.com/nickharris808/polyfrac#install)
 [![CI](https://img.shields.io/badge/ci-passing-brightgreen)](https://github.com/nickharris808/polyfrac/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-66%20passing-brightgreen)](tests/)
+[![tests](https://img.shields.io/badge/tests-68%20passing-brightgreen)](tests/)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![deps](https://img.shields.io/badge/dependencies-none-brightgreen)
@@ -21,11 +21,6 @@ Sturm's theorem does: the exact count of distinct real roots in an interval, com
 sign changes over rational arithmetic. Zero roots plus a known sign at one endpoint settles the sign
 for the whole continuum. That is the difference between "we tested 10,000 points" and "there is no
 crossing", and it is what you need if the answer goes into a specification.
-
-Sampling a parameter at chosen points cannot tell you that a property holds *everywhere* in a range —
-a crossing may sit between two samples. `polyfrac` counts the real roots in an interval **exactly**,
-as an integer, using Sturm's theorem over rational arithmetic. If the count is zero and the sign at one
-endpoint is known, the sign is settled for the whole interval.
 
 Zero dependencies. Pure standard library (`fractions`). ~390 lines you can read in one sitting.
 
@@ -195,7 +190,7 @@ around.
 pip install -e ".[test]" && pytest
 ```
 
-66 tests, including the worked example above and explicit checks that the arithmetic is exact
+68 tests, including the worked example above and explicit checks that the arithmetic is exact
 (`(1/3) * 3 == 1`, not `0.9999999999999999`).
 
 ## Where this came from
@@ -211,7 +206,7 @@ Five small, independently useful tools built around one idea: **a verdict you ca
 
 | | |
 |---|---|
-| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~390 lines, with a CLI. Shortest counterexamples, no required dependencies. |
+| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker with a CLI. Shortest counterexamples, no required dependencies. |
 | [`protocol-bench`](https://github.com/nickharris808/protocol-bench) | 15 published IEEE 802.11 / 3GPP procedures with ground truth. A claimed detection must **replay**. |
 | [`minicheck-mcp`](https://github.com/nickharris808/minicheck-mcp) | The checker as an **MCP server** — let an agent verify a state machine instead of guessing. |
 | [`polyfrac`](https://github.com/nickharris808/polyfrac) ← *you are here* | Exact polynomial + rational-function arithmetic over ℚ with Sturm real-root counting. Zero deps. |

@@ -79,3 +79,48 @@ def test_readme_states_what_the_tool_does_not_establish():
     assert re.search(r"^#+ .*(honest scope|limitations|what this does not)", text, re.M | re.I), (
         "README has no section stating the tool's limits"
     )
+
+
+def test_no_claim_is_made_about_another_repo_that_this_one_cannot_verify():
+    """A line count for a *different* package cannot be checked from here, so it must not be quoted.
+
+    A bulk reconciliation once rewrote the portfolio table's description of `minicheck` using THIS
+    repository's line count, so four READMEs confidently stated a wrong number about a package they
+    do not contain. Numbers about other repos are now simply absent.
+    """
+    import re
+    from pathlib import Path
+
+    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
+    for line in readme.splitlines():
+        if "github.com/nickharris808/" not in line:
+            continue
+        # The row describing this repo may quote its own numbers; rows about others may not.
+        others = [
+            m
+            for m in re.findall(r"github\.com/nickharris808/([a-z-]+)", line)
+            if m != Path(__file__).resolve().parents[1].name
+        ]
+        if others and re.search(r"~\d+\s+lines|\d+\s+tests", line):
+            raise AssertionError(f"unverifiable claim about {others}: {line.strip()}")
+
+
+def test_the_performance_claims_hold_as_ceilings():
+    """The README quotes degree-10/20/40 timings; these bound them with CI headroom.
+
+    Bounds are ~10x the measured figures, which is loose enough for a shared runner and still tight
+    enough to catch an algorithmic regression — the Sturm chain is quadratic in the degree, and
+    anything worse would blow past these by orders of magnitude.
+    """
+    import time
+
+    from polyfrac import Poly, count_roots
+
+    for degree, ceiling_s in ((10, 6e-3), (20, 2.1e-2), (40, 8.5e-2)):
+        poly = Poly.from_roots(list(range(1, degree + 1)))
+        best = float("inf")
+        for _ in range(3):
+            t0 = time.perf_counter()
+            count_roots(poly, 0, degree + 1)
+            best = min(best, time.perf_counter() - t0)
+        assert best < ceiling_s, f"degree {degree}: {best * 1e3:.2f} ms exceeds the {ceiling_s * 1e3:.0f} ms ceiling"
