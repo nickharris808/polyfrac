@@ -36,7 +36,9 @@ Zero dependencies. Pure standard library (`fractions`). ~390 lines you can read 
 pip install "polyfrac @ git+https://github.com/nickharris808/polyfrac.git"
 ```
 
-> `pip install polyfrac` will work once the PyPI release lands. The distribution is built and `twine check`-clean; publication is pending.
+> `pip install polyfrac` does not work yet — the package is not on PyPI. Install from GitHub as
+> shown above. The distribution builds and is `twine check`-clean, with no unpublished
+> dependencies, so it is ready to upload whenever that happens.
 
 ## 30-second quickstart
 
