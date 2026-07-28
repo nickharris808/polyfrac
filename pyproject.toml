@@ -21,7 +21,10 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-test = ["pytest>=7"]
+# numpy is TEST-ONLY and does not affect the package's zero-dependency runtime. Without it the
+# differential test against an independent root finder silently skips — which it did, on every CI
+# platform, leaving the most valuable check in this suite running nowhere.
+test = ["pytest>=7", "numpy"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
