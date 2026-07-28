@@ -1,7 +1,7 @@
 # polyfrac
 
-[![PyPI](https://img.shields.io/badge/pypi-polyfrac-blue)](https://pypi.org/project/polyfrac/)
-[![CI](https://img.shields.io/badge/ci-passing-brightgreen)](../.github/workflows/ci.yml)
+[![install](https://img.shields.io/badge/install-from%20GitHub-blue)](https://github.com/nickharris808/polyfrac#install)
+[![CI](https://img.shields.io/badge/ci-passing-brightgreen)](https://github.com/nickharris808/polyfrac/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-18%20passing-brightgreen)](tests/)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -32,8 +32,11 @@ Zero dependencies. Pure standard library (`fractions`). ~250 lines you can read 
 ## Install
 
 ```
-pip install polyfrac
+# from GitHub (PyPI release pending)
+pip install "polyfrac @ git+https://github.com/nickharris808/polyfrac.git"
 ```
+
+> `pip install polyfrac` will work once the PyPI release lands. The distribution is built and `twine check`-clean; publication is pending.
 
 ## 30-second quickstart
 
@@ -139,10 +142,26 @@ continuum of environment parameters — the worked example above is a stripped-d
 does for real. The arithmetic is here under MIT. The certification pipeline built on it, and the
 models it runs against, are the commercial offering.
 
-## Related
+## The portfolio
 
-- [`minicheck`](../minicheck) — an explicit-state model checker, same design philosophy: small enough
-  to read before you trust it.
+Five small, independently useful tools built around one idea: **a verdict you cannot check is not a verdict.**
+
+| | |
+|---|---|
+| [`minicheck`](https://github.com/nickharris808/minicheck) | An explicit-state model checker in ~560 lines. Shortest counterexamples, no required dependencies. |
+| [`protocol-bench`](https://github.com/nickharris808/protocol-bench) | 15 published IEEE 802.11 / 3GPP procedures with ground truth. A claimed detection must **replay**. |
+| [`minicheck-mcp`](https://github.com/nickharris808/minicheck-mcp) | The checker as an **MCP server** — let an agent verify a state machine instead of guessing. |
+| [`polyfrac`](https://github.com/nickharris808/polyfrac) ← *you are here* | Exact polynomial + rational-function arithmetic over ℚ with Sturm real-root counting. Zero deps. |
+| [`failclosed`](https://github.com/nickharris808/failclosed) | Default-deny ASGI middleware: a gated endpoint succeeds only on an affirmative verdict. |
+
+Try it in your browser: **[live demo](https://huggingface.co/spaces/nickh007/protocol-bench-demo)** · Ground-truth tasks: **[dataset](https://huggingface.co/datasets/nickh007/protocol-bench)**
+
+### The commercial offering
+
+These are the engine. What is **not** open source is what makes it useful at scale: the maintained
+hazard-property corpora, composition analysis that finds hazards existing only when two components
+are combined, the trust-model sensitivity sweep, and the evidence trail that makes a verdict auditable
+after the fact. The tools above are MIT and stay that way.
 
 ## Licence
 
