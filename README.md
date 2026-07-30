@@ -1,7 +1,7 @@
 # polyfrac
 
 [![install](https://img.shields.io/badge/install-from%20GitHub-blue)](https://github.com/nickharris808/polyfrac#install)
-[![CI](https://img.shields.io/badge/ci-passing-brightgreen)](https://github.com/nickharris808/polyfrac/actions/workflows/ci.yml)
+[![CI](https://github.com/nickharris808/polyfrac/actions/workflows/ci.yml/badge.svg)](https://github.com/nickharris808/polyfrac/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-68%20passing-brightgreen)](tests/)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -27,13 +27,14 @@ Zero dependencies. Pure standard library (`fractions`). ~390 lines you can read 
 ## Install
 
 ```
-# from GitHub (PyPI release pending)
+pip install polyfrac
+
+# or from source, unreleased main:
 pip install "polyfrac @ git+https://github.com/nickharris808/polyfrac.git"
 ```
 
-> `pip install polyfrac` does not work yet — the package is not on PyPI. Install from GitHub as
-> shown above. The distribution builds and is `twine check`-clean, with no unpublished
-> dependencies, so it is ready to upload whenever that happens.
+> Published on PyPI as **`polyfrac` 0.2.0** (2026-07-30). `pip install polyfrac` works.
+> The `git+https` form above installs unreleased `main` instead.
 
 ## 30-second quickstart
 
@@ -176,13 +177,61 @@ interval. One root inside is enough to refuse, even if both endpoints are positi
 **`gauss_solve` raised instead of returning.** The system is singular over the field of rational
 functions, so there is no unique solution to return.
 
+## FAQ
+
+**"Why not SymPy?"**
+SymPy will do all of this and much more, and if you already depend on it, use it. `polyfrac` exists
+for the case where you want the root count and nothing else, with no dependency, no import cost, and
+a source file short enough to audit before you trust it in a certification path.
+
+**"Refusing floats is annoying. Why not just convert them?"**
+Because `0.1` is not one tenth — it is `3602879701896397/36028797018963968` — and exact arithmetic on
+it produces an exact answer to a question you did not ask. Silently converting would make that
+failure invisible, which is worse than a wrong answer you can see. `Fraction(1, 10)`, the string
+`"0.1"`, and `Poly.from_floats()` are all one keystroke away, and each says which value you meant.
+
+**"Is Sturm's theorem really exact, or is this just high precision?"**
+Exact. Every coefficient is a `Fraction`, every operation is rational arithmetic, and the answer is
+an **integer** obtained by counting sign changes. There is no tolerance parameter anywhere in the
+package, because there is nothing for one to control.
+
+**"Zero roots in the interval — does that mean the polynomial is positive there?"**
+Only with a sign at one endpoint, which is why `positive_on` returns both: `n_roots_in_interval`
+*and* `P_a`/`P_b`. Zero roots plus a known sign settles the sign for the whole continuum. Zero roots
+alone settles nothing about which side.
+
+**"It counted fewer roots than the polynomial has."**
+It counts **distinct** roots. `Poly.from_roots([2, 2, 2])` has one. Multiplicities are not reported,
+and the squarefree Sturm chain is why.
+
+**"Can I use this for two parameters?"**
+No. It is univariate over ℚ. Multivariate sign conditions need cylindrical algebraic decomposition,
+which this does not implement and will not — that is a genuinely different and much larger piece of
+software.
+
+**"Is it production-ready?"**
+Yes. Small, exact, no dependencies, and it refuses inexact input rather than silently approximating.
+Of everything in this portfolio it is the piece with the least to qualify.
+
+**"Something here gave me a confident answer that was wrong."**
+Worth an issue rather than a workaround, and please include the polynomial and the interval. An exact
+method returning a wrong integer is the most serious failure this package can have.
+
 ## Performance
 
-Measured, not estimated: `count_roots` on a degree-40 polynomial with 40 distinct roots takes about
-**8.5 ms**; degree 20 about **2.1 ms**; degree 10 about **0.6 ms**. Cost is dominated by the Sturm
-chain, which is quadratic in the degree, and by `Fraction` growth in the coefficients. Nothing here
-has needed optimising — if you hit a case that is slow, it is worth reporting rather than working
-around.
+Measured on an M-series laptop, CPython 3.11, on `Poly.from_roots(range(1, d+1))` over `(0, d+1]` —
+`d` distinct roots, the worst case for the chain:
+
+| degree | `count_roots` |
+|---|---|
+| 10 | ~0.6 ms |
+| 20 | ~2.1 ms |
+| 40 | ~8.7 ms |
+
+Cost is dominated by the Sturm chain, which is quadratic in the degree, and by `Fraction` growth in
+the coefficients — so a polynomial with large rational coefficients costs more than its degree
+suggests. Nothing here has needed optimising; if you hit a case that is slow, it is worth reporting
+rather than working around.
 
 ## Tests
 
@@ -190,8 +239,20 @@ around.
 pip install -e ".[test]" && pytest
 ```
 
+```console
+$ pytest -q
+....................................................................     [100%]
+68 passed in 0.36s
+```
+
 68 tests, including the worked example above and explicit checks that the arithmetic is exact
-(`(1/3) * 3 == 1`, not `0.9999999999999999`).
+(`(1/3) * 3 == 1`, not `0.9999999999999999`). One asserts this README's own test count against
+`pytest --collect-only`, so the badge cannot drift.
+
+`numpy` is a **test-only** extra and does not touch the zero-dependency runtime. It is required
+rather than optional on purpose: the differential test against an independent root finder used to
+skip silently when numpy was absent, which it was on every CI platform — leaving the most valuable
+check in this suite running nowhere.
 
 ## Where this came from
 
